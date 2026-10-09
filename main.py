@@ -195,37 +195,88 @@ def resolver_primal_dual(A, b, c):
         menor_passo = min(passos)
         pi = pi + (menor_passo * direcao_dual)
 
+    return -1
+
 if __name__ == "__main__":
-    nome_arquivo = "instance3.min"
     
-    n, s, t, arestas = ler_instancia(nome_arquivo)
-    A, b, c = modelar_corte_minimo(n, s, t, arestas)
-    
-    resultado = resolver_primal_dual(A, b, c)
-
-    if resultado == -1:
-        print(f"\nA execução parou! Motivo: {resultado}")
-    else:
-        solucao, valor_otimo, var_duais = resultado
-
-        num_arestas = len(arestas)
-        distancias = solucao[num_arestas : num_arestas + n]
+    nomes_arquivos = ["instance1.min", "instance2.min", "instance3.min", "instance4.min", "instance5.min"]
         
-        conjunto_S = []
-        for u in range(1, n + 1):
-            if distancias[u - 1] < 0.5:
-                conjunto_S.append(u)
+    for nome in nomes_arquivos:
+        print("Testando o arquivo:", nome)
         
-        arestas_cortadas = []
-        for i in range(len(arestas)):
-            u = arestas[i][0]
-            v = arestas[i][1]
+        n, s, t, arestas = ler_instancia(nome)
+        A, b, c = modelar_corte_minimo(n, s, t, arestas)
+
+        resultado = resolver_primal_dual(A, b, c)
+
+        if resultado == -1:
+            print("A execução parou")
+        else:
+            solucao = resultado[0]
+            valor_otimo = resultado[1]
+            var_duais = resultado[2]
+
+            num_arestas = len(arestas)
             
-            if (u in conjunto_S) != (v in conjunto_S):
-                arestas_cortadas.append((u, v))
-        
-        print("-" * 40)
-        print(f"Valor Primal (Corte Mínimo): {valor_otimo}")
-        print(f"Valor Dual (Fluxo Máximo): {float(b.dot(var_duais))}")
-        print(f"Vértices no lado da Fonte (S): {conjunto_S}")
-        print(f"Arestas no corte: {arestas_cortadas}")
+            distancias = []
+            for i in range(n):
+                distancias.append(solucao[num_arestas + i])
+            
+            conjunto_S = []
+            for u in range(1, n + 1):
+                if distancias[u - 1] < 0.5:
+                    conjunto_S.append(u)
+            
+            arestas_cortadas = []
+            for i in range(len(arestas)):
+                u = arestas[i][0]
+                v = arestas[i][1]
+                
+                if (u in conjunto_S and v not in conjunto_S) or (v in conjunto_S and u not in conjunto_S):
+                    arestas_cortadas.append((u, v))
+            
+            print("Valor Primal:", valor_otimo)
+            print("Valor Dual:", b.dot(var_duais))
+            print("Vértices no lado da Fonte:", conjunto_S)
+            print("Arestas no corte:", arestas_cortadas)
+
+            print("\n Variáveis Primais Não Nulas ")
+            for i in range(len(solucao)):
+                valor = solucao[i]
+                
+                if valor > 0.000001 or valor < -0.000001:
+                    valor_arredondado = round(valor, 4) 
+                    
+                    if i < num_arestas:
+                        u = arestas[i][0]
+                        v = arestas[i][1]
+                        print(f"x_{i + 1} (aresta {u} para {v}) = {valor_arredondado}")
+                    elif i < num_arestas + n:
+                        vertice = i - num_arestas + 1
+                        print(f"d_{vertice} = {valor_arredondado}")
+                    else:
+                        excesso = i - num_arestas - n + 1
+                        print(f"excesso_{excesso} = {valor_arredondado}")
+
+            print("\nVariáveis Duais Não Nulas")
+            for i in range(len(var_duais)):
+                valor = var_duais[i]
+                
+                if valor > 0.000001 or valor < -0.000001:
+                    valor_arredondado = round(valor, 4)
+                    
+                    if i < (2 * num_arestas):
+                        indice_aresta = int(i / 2)
+                        u = arestas[indice_aresta][0]
+                        v = arestas[indice_aresta][1]
+                        
+                        if i % 2 == 0:
+                            sentido = "ida"
+                        else:
+                            sentido = "volta"
+                            
+                        print(f"pi_{i + 1} (aresta {u} para {v}, {sentido}) = {valor_arredondado}")
+                    elif i == (2 * num_arestas):
+                        print(f"pi_{i + 1} (distância da fonte s={s} é 0) = {valor_arredondado}")
+                    else:
+                        print(f"pi_{i + 1} (distância do sorvedouro t={t} é 1) = {valor_arredondado}")
