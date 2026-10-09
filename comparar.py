@@ -1,5 +1,9 @@
+
+    
+  
 import os
 import glob
+from p1_primal_dual import modelar_corte_minimo, resolver_primal_dual
 
 from leitor import ler_instancia
 from p1_pulp import resolver_p1
@@ -34,12 +38,19 @@ def main():
         else:
             problema = "P1"
             obj_pulp, tempo_pulp = resolver_p1(dados)
-            
-            obj_alg = None
 
-        if obj_alg is None:
+            A, b, c = modelar_corte_minimo(
+                dados['num_vertices'], dados['s'], dados['t'], dados['arestas']
+            )
+            resultado = resolver_primal_dual(A, b, c)
+            if type(resultado) == int:
+                obj_alg = None
+            else:
+                obj_alg = resultado[1]
+
+        if obj_alg is None or obj_pulp is None:
             bateu = "—"
-            str_alg = "—"
+            str_alg = f"{obj_alg:.2f}" if obj_alg is not None else "—"
         else:
             str_alg = f"{obj_alg:.2f}"
             bateu = "sim" if abs(obj_alg - obj_pulp) < 1e-6 else "não"
